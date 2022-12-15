@@ -68,26 +68,20 @@ def send_message(bot, message):
         logging.error(f'Error while getting list of homeworks: {error}')
 
 
-def get_api_answer(timestamp):
-    """Запрос к API-Сервиса."""
-    bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    payload = {'from_date': timestamp}
+def get_api_answer(current_timestamp: int) -> dict:
+    """Делает запрос к API-сервису."""
+    timestamp = current_timestamp or int(time.time())
+    params = {'from_date': timestamp}
     try:
         homework_statuses = requests.get(
-            ENDPOINT,
-            headers=HEADERS,
-            params=payload,
+            ENDPOINT, headers=HEADERS, params=params
         )
-        status = homework_statuses.status_code
-        if status == HTTPStatus.OK:
-            return homework_statuses.json()
-        else:
-            logging.error('Ошибка запроса')
-            send_message(bot, 'Ошибка запроса')
-            raise ValueError(homework_statuses.json())
+        if homework_statuses.status_code != HTTPStatus.OK:
+            raise Exception
     except Exception:
-        logging.error('Сбой в работе эндпоинта')
-        raise ValueError('Сбой в работе эндпоинта')
+        raise ValueError(homework_statuses.json())
+    logger.debug('Запрос к API практикума выполнен успешно')
+    return homework_statuses.json()
 
 
 def check_response(response):

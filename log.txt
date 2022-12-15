@@ -1,1 +1,2 @@
 2022-12-14 22:20:50,986, ERROR, Error while getting list of homeworks: Chat not found
+2022-12-15 15:14:33,868, ERROR, Error while getting list of homeworks: Chat not found

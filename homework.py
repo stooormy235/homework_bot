@@ -53,7 +53,7 @@ def check_tokens():
         logger.critical('Отсутствует телеграм: "TELEGRAM_CHAT_ID"')
         return False
     for token in tokens:
-        if os.getenv(token) is None:
+        if (token) is None:
             logger.critical(f'Отсутствует переменная: {token}')
             raise Exception(f'Отсутствует переменная: {token}')
     return True

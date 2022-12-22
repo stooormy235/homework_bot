@@ -121,6 +121,10 @@ def main():
                 if new_status != first_status:
                     send_message(bot, new_status)
                 first_status = new_status
+            except TypeError:
+                logging.error('Данные получены не в виде словаря')
+            except KeyError:
+                logging.error('Отсутсвует ключ homework')
             except Exception as error:
                 message = f'Сбой в работе программы: {error}'
                 logging.error(message)

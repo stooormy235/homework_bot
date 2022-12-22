@@ -5,9 +5,8 @@ import time
 from http import HTTPStatus
 
 import requests
-from dotenv import load_dotenv
 import telegram
-
+from dotenv import load_dotenv
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,24 +37,15 @@ HOMEWORK_VERDICTS = {
 
 def check_tokens():
     """Проверка токенов."""
-    tokens = [
-        'PRACTICUM_TOKEN',
-        'TELEGRAM_TOKEN',
-        'TELEGRAM_CHAT_ID',
-    ]
-    if not PRACTICUM_TOKEN:
-        logger.critical('Отсутствует токен: "PRACTICUM_TOKEN"')
-        return False
-    if not TELEGRAM_TOKEN:
-        logger.critical('Отсутствует токен: "TELEGRAM_TOKEN"')
-        return False
-    if not TELEGRAM_CHAT_ID:
-        logger.critical('Отсутствует телеграм: "TELEGRAM_CHAT_ID"')
-        return False
-    for token in tokens:
-        if (token) is None:
-            logger.critical(f'Отсутствует переменная: {token}')
-            raise Exception(f'Отсутствует переменная: {token}')
+    tokens = {
+        'practicum_token': PRACTICUM_TOKEN,
+        'telegram_token': TELEGRAM_TOKEN,
+        'telegram_chat_id': TELEGRAM_CHAT_ID,
+    }
+    for key, value in tokens.items():
+        if value is None:
+            logging.critical(f'{key} отсутствует')
+            return False
     return True
 
 
@@ -77,60 +67,39 @@ def get_api_answer(current_timestamp: int) -> dict:
             ENDPOINT, headers=HEADERS, params=params
         )
         if homework_statuses.status_code != HTTPStatus.OK:
-            raise Exception
+            logger.debug('Запрос к API практикума выполнен успешно')
+            raise ValueError
+        return homework_statuses.json()
     except Exception:
         raise ValueError(homework_statuses.json())
-    logger.debug('Запрос к API практикума выполнен успешно')
-    return homework_statuses.json()
 
 
 def check_response(response):
     """Проверяет ответ API на соответствие документации."""
     if isinstance(response, dict) is False:
-        logging.error('Данные получены не в виде словаря')
-        raise TypeError
+        raise TypeError('Данные получены не в виде словаря')
     if 'homeworks' not in response:
-        logging.error('Нет ключа homeworks')
-        raise KeyError
+        raise KeyError('Нет ключа homeworks')
     if isinstance(response['homeworks'], list) is False:
-        logging.error('Данные переданы не в виде списка')
-        raise TypeError
+        raise TypeError('Данные переданы не в виде списка')
     if 'current_date'not in response:
-        logging.error('Отсутствует ожидаемый ключ current_date в ответе API')
-        raise KeyError
-    if type(response) is None:
-        logging.error('Данные получены с типом None')
-        raise TypeError
+        raise KeyError('Отсутствует ожидаемый ключ current_date в ответе API')
+    if isinstance(response, int) is None:
+        raise TypeError('Данные получены с типом None')
 
 
 def parse_status(homework):
     """Получает статус домашней работы."""
-    try:
-        homework_name = str(homework['homework_name'])
-    except Exception:
-        logging.error('Не удалось узнать название работы')
-    try:
-        homework_status = homework['status']
-    except Exception:
-        logging.error('Не удалось узнать статус работы')
-    if homework_status == 'approved':
-        verdict = str(HOMEWORK_VERDICTS[homework_status])
-        return str(
-            f'Изменился статус проверки работы "{homework_name}". {verdict}'
-        )
-    elif homework_status == 'reviewing':
-        verdict = str(HOMEWORK_VERDICTS[homework_status])
-        return str(
-            f'Изменился статус проверки работы "{homework_name}". {verdict}'
-        )
-    elif homework_status == 'rejected':
-        verdict = str(HOMEWORK_VERDICTS[homework_status])
-        return str(
-            f'Изменился статус проверки работы "{homework_name}". {verdict}'
-        )
-    else:
-        logging.error('Не обнаружен статус домашней робаты')
-        raise KeyError
+    if 'homework_name' not in homework:
+        raise KeyError('Отсутсвует ключ "homework_name" в ответе API')
+    if 'status' not in homework:
+        raise KeyError('Отсутствует ключ "status" в ответе API')
+    homework_name = homework['homework_name']
+    homework_status = homework['status']
+    if homework_status not in HOMEWORK_VERDICTS:
+        raise KeyError(f'Неизвестный статус работы: {homework_status}')
+    verdict = HOMEWORK_VERDICTS[homework_status]
+    return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def main():
@@ -145,6 +114,7 @@ def main():
         first_status = ''
         while True:
             try:
+                response = ['current_date']
                 response = get_api_answer(timestamp)
                 check_response(response)
                 new_status = parse_status(response['homeworks'][0])

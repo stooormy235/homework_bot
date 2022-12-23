@@ -37,16 +37,7 @@ HOMEWORK_VERDICTS = {
 
 def check_tokens():
     """Проверка токенов."""
-    tokens = {
-        'practicum_token': PRACTICUM_TOKEN,
-        'telegram_token': TELEGRAM_TOKEN,
-        'telegram_chat_id': TELEGRAM_CHAT_ID,
-    }
-    for key, value in tokens.items():
-        if value is None:
-            logging.critical(f'{key} отсутствует')
-            return False
-    return True
+    return all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
 
 
 def send_message(bot, message):
@@ -71,21 +62,19 @@ def get_api_answer(current_timestamp: int) -> dict:
             raise ValueError
         return homework_statuses.json()
     except Exception:
-        raise ValueError(homework_statuses.json())
+        raise ValueError('Ошибка Форматирования')
 
 
 def check_response(response):
     """Проверяет ответ API на соответствие документации."""
-    if isinstance(response, dict) is False:
+    if not isinstance(response, dict):
         raise TypeError('Данные получены не в виде словаря')
     if 'homeworks' not in response:
         raise KeyError('Нет ключа homeworks')
-    if isinstance(response['homeworks'], list) is False:
+    if not isinstance(response['homeworks'], list):
         raise TypeError('Данные переданы не в виде списка')
     if 'current_date'not in response:
         raise KeyError('Отсутствует ожидаемый ключ current_date в ответе API')
-    if isinstance(response, int) is None:
-        raise TypeError('Данные получены с типом None')
 
 
 def parse_status(homework):
@@ -108,7 +97,10 @@ def main():
         format='%(asctime)s, %(levelname)s, %(message)s',
         handlers=[logging.FileHandler('log.txt')]
     )
-    if check_tokens():
+    if not check_tokens():
+        logger.critical(f'Отсутствует токен: {all}')
+        sys.exit("аварийное завершение")
+    else:
         bot = telegram.Bot(token=TELEGRAM_TOKEN)
         timestamp = int(time.time() - 1814400)
         first_status = ''

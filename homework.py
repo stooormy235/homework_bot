@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 import time
+import json
 from http import HTTPStatus
 
 import requests
@@ -59,10 +60,12 @@ def get_api_answer(current_timestamp: int) -> dict:
         )
         if homework_statuses.status_code != HTTPStatus.OK:
             logger.debug('Запрос к API практикума выполнен успешно')
-            raise ValueError
+            raise ValueError('Сервис не доступен')
         return homework_statuses.json()
-    except Exception:
-        raise ValueError('Ошибка Форматирования')
+    except json.decoder.JSONDecodeError:
+        raise Exception('Ответ не преобразован в json')
+    except Exception as error:
+        raise error(f'Ошибка при запросе к основному API: {error}')
 
 
 def check_response(response):
@@ -113,10 +116,10 @@ def main():
                 if new_status != first_status:
                     send_message(bot, new_status)
                 first_status = new_status
-            except TypeError:
-                logging.error('Данные получены не в виде словаря')
-            except KeyError:
-                logging.error('Отсутсвует ключ homework')
+            except (TypeError, KeyError) as error:
+                message = f'Сбой в работе программы: {error}'
+                logging.error(message)
+                send_message(bot, message)
             except Exception as error:
                 message = f'Сбой в работе программы: {error}'
                 logging.error(message)
